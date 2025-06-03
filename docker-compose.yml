@@ -1,0 +1,36 @@
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=savannah
+    depends_on:
+      - db
+    networks:
+      - savannah-network
+
+  db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=savannah
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - savannah-network
+
+volumes:
+  postgres_data:
+
+networks:
+  savannah-network:
+    driver: bridge
