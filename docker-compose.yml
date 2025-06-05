@@ -1,6 +1,6 @@
-
 services:
   app:
+    env_file: .env
     build: .
     ports:
       - "8080:8080"
@@ -11,12 +11,13 @@ services:
       - DB_PASSWORD=postgres
       - DB_NAME=savannah
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - savannah-network
 
   db:
-    image: postgres:14-alpine
+    image: postgres:14
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -27,6 +28,11 @@ services:
       - "5432:5432"
     networks:
       - savannah-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
