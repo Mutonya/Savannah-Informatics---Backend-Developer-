@@ -8,6 +8,14 @@ import (
 	"github.com/Mutonya/Savanah/internal/middleware"
 )
 
+func SetupHealthRoute(router *gin.Engine) {
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+}
+
 func SetupAuthRoutes(router *gin.Engine, authController *controllers.AuthController) {
 	auth := router.Group("/auth")
 	{

@@ -88,6 +88,7 @@ func main() {
 	router.Use(middleware.CORSMiddleware())
 
 	// Setup routes
+	routes.SetupHealthRoute(router)
 	routes.SetupAuthRoutes(router, authController)
 	routes.SetupAPIRoutes(router, authService, productController, categoryController, orderController, authController)
 
