@@ -41,7 +41,7 @@ This is a Go-based backend service for managing customers, products with hierarc
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/Mutonya/Savannah-Informatics---Backend-Developer-.git
-   cd savannah-go-backend
+   cd docker-compose up --build
    ```
 
 2. **Set up environment variables**:
