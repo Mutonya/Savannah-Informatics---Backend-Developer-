@@ -47,6 +47,7 @@ func (s *notificationService) SendOrderConfirmation(order *models.Order) error {
 
 	// Send email to customer
 	customerSubject := fmt.Sprintf("Order #%d Confirmation", order.ID)
+
 	if err := s.sendHTMLEmail(
 		order.Customer.Email,
 		customerSubject,
@@ -156,6 +157,9 @@ func (s *notificationService) sendSMS(to, message string) error {
 }
 
 func (s *notificationService) sendHTMLEmail(to, subject, templateName string, data interface{}) error {
+
+	log.Printf("Sending email to: %s using host %s:%d", to, s.config.SMTPHost, s.config.SMTPPort)
+
 	if s.config.SMTPHost == "" {
 		return fmt.Errorf("SMTP configuration not set")
 	}
