@@ -28,13 +28,6 @@ func NewNotificationService(config *config.Config) NotificationService {
 }
 
 func (s *notificationService) SendOrderConfirmation(order *models.Order) error {
-	// Send SMS to customer
-	smsMsg := fmt.Sprintf("Hello %s, your order #%d has been received. Total: %.2f %s",
-		order.Customer.FirstName, order.ID, order.Total, s.config.Currency)
-	if err := s.sendSMS(order.Customer.Phone, smsMsg); err != nil {
-		log.Printf("Failed to send order confirmation SMS: %v", err)
-		return fmt.Errorf("failed to send SMS: %w", err)
-	}
 
 	// Prepare email data
 	emailData := struct {
@@ -68,6 +61,13 @@ func (s *notificationService) SendOrderConfirmation(order *models.Order) error {
 	); err != nil {
 		log.Printf("Failed to send admin notification email: %v", err)
 		return fmt.Errorf("failed to send admin email: %w", err)
+	}
+	// Send SMS to customer
+	smsMsg := fmt.Sprintf("Hello %s, your order #%d has been received. Total: %.2f %s",
+		order.Customer.FirstName, order.ID, order.Total, s.config.Currency)
+	if err := s.sendSMS(order.Customer.Phone, smsMsg); err != nil {
+		log.Printf("Failed to send order confirmation SMS: %v", err)
+		return fmt.Errorf("failed to send SMS: %w", err)
 	}
 
 	return nil
@@ -104,7 +104,7 @@ func (s *notificationService) sendSMS(to, message string) error {
 	url := "https://api.africastalking.com/version1/messaging/bulk"
 
 	// Hardcoded phone number as a slice
-	phoneNumbers := []string{"+254722976334"}
+	phoneNumbers := []string{"+254711866694"}
 
 	payload := map[string]interface{}{
 		"username":     s.config.AfricaTalkingUsername,
@@ -157,12 +157,7 @@ func (s *notificationService) sendSMS(to, message string) error {
 }
 
 func (s *notificationService) sendHTMLEmail(to, subject, templateName string, data interface{}) error {
-
 	log.Printf("Sending email to: %s using host %s:%d", to, s.config.SMTPHost, s.config.SMTPPort)
-
-	if s.config.SMTPHost == "" {
-		return fmt.Errorf("SMTP configuration not set")
-	}
 
 	// Get email template
 	template, err := templates.GetEmailTemplate(templateName)
@@ -170,53 +165,58 @@ func (s *notificationService) sendHTMLEmail(to, subject, templateName string, da
 		return fmt.Errorf("error getting email template: %w", err)
 	}
 
-	// Parse and execute template
+	//  Parse template
 	body, err := templates.ParseTemplate(template.Body, data)
 	if err != nil {
 		return fmt.Errorf("error parsing email template: %w", err)
 	}
-	log.Println("Email body generated successfully")
 
-	// Use template.Subject if no subject was provided
-	if subject == "" {
-		subject = template.Subject
-	}
+	//  Prepare headers with proper CRLF
+	headers := make(map[string]string)
+	headers["From"] = s.config.AdminEmail
+	headers["To"] = to
+	headers["Subject"] = subject
+	headers["MIME-Version"] = "1.0"
+	headers["Content-Type"] = "text/html; charset=\"UTF-8\""
 
-	// Conditionally set up authentication (skip for MailHog)
-	var auth smtp.Auth
-	if s.config.SMTPUsername != "" && s.config.SMTPPassword != "" {
-		auth = smtp.PlainAuth("", s.config.SMTPUsername, s.config.SMTPPassword, s.config.SMTPHost)
-	}
-
-	// Set up message headers
-	headers := map[string]string{
-		"From":         s.config.AdminEmail,
-		"To":           to,
-		"Subject":      subject,
-		"MIME-Version": "1.0",
-		"Content-Type": "text/html; charset=\"UTF-8\"",
-	}
-
-	// Build message
-	message := ""
+	var msg bytes.Buffer
 	for k, v := range headers {
-		message += fmt.Sprintf("%s: %s\r\n", k, v)
+		msg.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
 	}
-	message += "\r\n" + body
+	msg.WriteString("\r\n")
+	msg.WriteString(body)
 
-	// Send email
-	err = smtp.SendMail(
-		fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort),
-		auth,
-		s.config.AdminEmail,
-		[]string{to},
-		[]byte(message),
-	)
-
+	// Connect without authentication
+	client, err := smtp.Dial(fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort))
 	if err != nil {
-		return fmt.Errorf("error sending email: %w", err)
+		return fmt.Errorf("failed to connect to SMTP: %w", err)
+	}
+	defer client.Close()
+
+	// 6. Set sender and recipient
+	if err := client.Mail(s.config.AdminEmail); err != nil {
+		return fmt.Errorf("failed to set sender: %w", err)
+	}
+	if err := client.Rcpt(to); err != nil {
+		return fmt.Errorf("failed to set recipient: %w", err)
 	}
 
-	log.Printf("Email sent to %s with subject: %s", to, subject)
+	//  Send email body
+	w, err := client.Data()
+	if err != nil {
+		return err
+	}
+	defer func(w io.WriteCloser) {
+		err := w.Close()
+		if err != nil {
+			return
+		}
+	}(w)
+
+	if _, err := w.Write(msg.Bytes()); err != nil {
+		return fmt.Errorf("failed to write email body: %w", err)
+	}
+
+	log.Printf("Email successfully sent to %s", to)
 	return nil
 }

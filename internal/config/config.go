@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -23,7 +24,7 @@ type Config struct {
 	AfricaTalkingAPIKey   string
 	AfricaTalkingUsername string
 	SMTPHost              string
-	SMTPPort              string
+	SMTPPort              int
 	SMTPUsername          string
 	SMTPPassword          string
 	AdminEmail            string
@@ -32,6 +33,13 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
+	// Get SMTP port as integer
+	smtpPortStr := getEnv("SMTP_PORT", "1025") // Default to MailHog port
+	smtpPort, err := strconv.Atoi(smtpPortStr)
+	if err != nil {
+		// Fallback to default port if conversion fails
+		smtpPort = 1025
+	}
 	return &Config{
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
@@ -52,8 +60,9 @@ func LoadConfig() *Config {
 		AfricaTalkingUsername: getEnv("AFRICA_TALKING_USERNAME", ""),
 		SMSSenderID:           getEnv("CURRENCY", ""),
 
-		SMTPHost:     getEnv("SMTP_HOST", ""),
-		SMTPPort:     getEnv("SMTP_PORT", "587"),
+		SMTPHost: getEnv("SMTP_HOST", ""),
+
+		SMTPPort:     smtpPort,
 		SMTPUsername: getEnv("SMTP_USERNAME", ""),
 		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
 		AdminEmail:   getEnv("ADMIN_EMAIL", ""),

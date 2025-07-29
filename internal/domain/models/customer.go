@@ -11,3 +11,9 @@ type Customer struct {
 	Address   string `gorm:"size:255"`
 	OAuthID   string `gorm:"column:oauth_id;size:255;unique"`
 }
+
+// 	gorm.Model This is an embedded struct provided by GORM. It includes the following fields automatically:
+//ID        uint      // primary key
+//CreatedAt time.Time
+//UpdatedAt time.Time
+//DeletedAt gorm.DeletedAt `gorm:"index"` // for soft deletes

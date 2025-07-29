@@ -18,9 +18,11 @@ type ProductRepository interface {
 }
 
 type productRepository struct {
-	db *gorm.DB
+	db *gorm.DB //hold db connection
 }
 
+// create instance
+// manual DI
 func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &productRepository{db: db}
 }
@@ -29,6 +31,13 @@ func (r *productRepository) Create(ctx context.Context, product *models.Product)
 	return r.db.WithContext(ctx).Create(product).Error
 }
 
+/*
+Preload("Children"): Eager loads subcategories
+
+Preload("Products"): Eager loads products
+
+Returns full category hierarchy in one query
+*/
 func (r *productRepository) GetByID(ctx context.Context, id uint) (*models.Product, error) {
 	var product models.Product
 	if err := r.db.WithContext(ctx).Preload("Category").First(&product, id).Error; err != nil {
@@ -88,9 +97,10 @@ func (r *productRepository) GetByCategory(ctx context.Context, categoryID uint, 
 
 func (r *productRepository) GetAveragePrice(ctx context.Context, categoryID uint) (float64, error) {
 	var avgPrice float64
+	//Calculates average price across category hierarchy
 	if err := r.db.WithContext(ctx).Model(&models.Product{}).
 		Where("category_id = ?", categoryID).
-		Select("AVG(price)").
+		Select("AVG(price)"). //Uses SQL AVG() function for efficiency
 		Scan(&avgPrice).Error; err != nil {
 		return 0, err
 	}

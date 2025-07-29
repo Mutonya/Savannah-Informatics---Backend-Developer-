@@ -19,17 +19,6 @@ func NewCategoryController(categoryService services.CategoryService) *CategoryCo
 	return &CategoryController{categoryService: categoryService}
 }
 
-// @Summary Create a new category
-// @Description Create a new product category
-// @Tags categories
-// @Security BearerAuth
-// @Accept  json
-// @Produce  json
-// @Param category body services.CategoryCreateRequest true "Category data"
-// @Success 201 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /api/v1/categories [post]
 func (c *CategoryController) CreateCategory(ctx *gin.Context) {
 	var req services.CategoryCreateRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -49,15 +38,6 @@ func (c *CategoryController) CreateCategory(ctx *gin.Context) {
 	responses.SuccessResponse(ctx, http.StatusCreated, category)
 }
 
-// @Summary Get all categories
-// @Description Get a hierarchical list of all categories
-// @Tags categories
-// @Security BearerAuth
-// @Accept  json
-// @Produce  json
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /api/v1/categories [get]
 func (c *CategoryController) GetCategories(ctx *gin.Context) {
 	categories, err := c.categoryService.GetCategories()
 	if err != nil {
@@ -70,17 +50,6 @@ func (c *CategoryController) GetCategories(ctx *gin.Context) {
 	responses.SuccessResponse(ctx, http.StatusOK, categories)
 }
 
-// @Summary Get category details
-// @Description Get details of a specific category
-// @Tags categories
-// @Security BearerAuth
-// @Accept  json
-// @Produce  json
-// @Param id path int true "Category ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 404 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /api/v1/categories/{id} [get]
 func (c *CategoryController) GetCategory(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -100,19 +69,6 @@ func (c *CategoryController) GetCategory(ctx *gin.Context) {
 	responses.SuccessResponse(ctx, http.StatusOK, category)
 }
 
-// @Summary Get products in category
-// @Description Get all products belonging to a category (including subcategories)
-// @Tags categories
-// @Security BearerAuth
-// @Accept  json
-// @Produce  json
-// @Param id path int true "Category ID"
-// @Param page query int false "Page number" default(1)
-// @Param limit query int false "Items per page" default(10)
-// @Success 200 {object} responses.PaginatedResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /api/v1/categories/{id}/products [get]
 func (c *CategoryController) GetCategoryProducts(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -135,17 +91,6 @@ func (c *CategoryController) GetCategoryProducts(ctx *gin.Context) {
 	responses.PaginatedResponse(ctx, http.StatusOK, products, int64(total), page, limit)
 }
 
-// @Summary Get average product price for category
-// @Description Calculate average price of products in a category (including subcategories)
-// @Tags categories
-// @Security BearerAuth
-// @Accept  json
-// @Produce  json
-// @Param id path int true "Category ID"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /api/v1/categories/{id}/average-price [get]
 func (c *CategoryController) GetAveragePrice(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -165,19 +110,6 @@ func (c *CategoryController) GetAveragePrice(ctx *gin.Context) {
 	responses.SuccessResponse(ctx, http.StatusOK, gin.H{"average_price": avgPrice})
 }
 
-// @Summary Update a category
-// @Description Update an existing category's details
-// @Tags categories
-// @Security BearerAuth
-// @Accept  json
-// @Produce  json
-// @Param id path int true "Category ID"
-// @Param category body services.CategoryUpdateRequest true "Category data"
-// @Success 200 {object} responses.SuccessResponse
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 404 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /api/v1/categories/{id} [put]
 func (c *CategoryController) UpdateCategory(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -204,17 +136,6 @@ func (c *CategoryController) UpdateCategory(ctx *gin.Context) {
 	responses.SuccessResponse(ctx, http.StatusOK, category)
 }
 
-// @Summary Delete a category
-// @Description Delete a category from the system
-// @Tags categories
-// @Security BearerAuth
-// @Accept  json
-// @Produce  json
-// @Param id path int true "Category ID"
-// @Success 204
-// @Failure 400 {object} responses.ErrorResponse
-// @Failure 500 {object} responses.ErrorResponse
-// @Router /api/v1/categories/{id} [delete]
 func (c *CategoryController) DeleteCategory(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {

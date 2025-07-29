@@ -1,75 +1,138 @@
-
-
+# Define services/containers for our application stack
 services:
+
+  # Main application service
   app:
+    # Load environment variables from .env file in current directory
     env_file: .env
+    
+    # Build configuration for custom Docker image
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: .       # Use current directory as build context
+      dockerfile: Dockerfile  # Specify Dockerfile to use for build
+    
+    # Port mapping: HostPort:ContainerPort
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Expose container port 8080 on host port 8080
+    
+    # Set environment variables (override .env file if conflicts exist)
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=savannah
+      - DB_HOST=db         # Database service name (Docker DNS resolution)
+      - DB_PORT=5432       # PostgreSQL default port
+      - DB_USER=postgres   # Database username
+      - DB_PASSWORD=postgres # Database password
+      - DB_NAME=savannah   # Database name
+      - SMTP_HOST=mailhog  # Mailhog service name
+      - SMTP_PORT=1025     # Mailhog SMTP port
+    
+    # Dependency management with health checks
     depends_on:
-      db:
-        condition: service_healthy
+      db:                  # Database service dependency
+        condition: service_healthy  # Wait until db passes health check
+      mailhog:             # Mailhog service dependency
+        condition: service_healthy  # Wait until mailhog passes health check
+    
+    # Network configuration
     networks:
-      - savannah-network
+      - savannah-network  # Connect to custom bridge network
+    
+    # Restart policy: Always restart unless explicitly stopped
     restart: unless-stopped
+    
+    # Health check configuration for application
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
+      interval: 30s     # Check every 30 seconds
+      timeout: 3s       # Timeout if no response in 3s
+      retries: 3        # Mark unhealthy after 3 consecutive failures
+      start_period: 10s # Wait 10s before first health check
+    
+    # Logging configuration
     logging:
-      driver: "json-file"
+      driver: "json-file"  # Use JSON formatted logs
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: "10m"  # Rotate logs after 10MB
+        max-file: "3"    # Keep max 3 log files
+    
+    # Resource constraints (especially important in production to prevent one service from hogging resources)
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 512M
+          cpus: '1'      # Limit to 1 CPU core
+          memory: 512M   # Limit to 512MB RAM
 
+  # PostgreSQL database service
   db:
-    image: postgres:14
+    image: postgres:14  # Use official PostgreSQL 14 image
+    
+    # Database initialization environment variables
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=savannah
+      - POSTGRES_USER=postgres     # Default admin user
+      - POSTGRES_PASSWORD=postgres # User password
+      - POSTGRES_DB=savannah       # Default database name
+    
+    # Persistent data storage configuration
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data  # Named volume for data persistence
+    
+    # Port mapping for database access
     ports:
-      - "5432:5432"
+      - "5432:5432"  # Expose PostgreSQL port on host
+    
     networks:
-      - savannah-network
+      - savannah-network  # Connect to application network
+    
+    restart: unless-stopped  # Same restart policy as app
+    
+    # Database-specific health check
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+      test: ["CMD-SHELL", "pg_isready -U postgres"]  # Check if ready to accept connections
+      interval: 5s     # More frequent checks during startup
+      timeout: 5s      # Longer timeout for database initialization
+      retries: 5       # More retries for slow-starting databases
+    
+    # Logging configuration (same as app service)
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+    
+    # Resource allocation for database
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 1G
+          cpus: '1'      # Limit to 1 CPU core
+          memory: 1G     # Higher memory limit (1GB) for database
 
+  # MailHog service for email testing
+  mailhog:
+    image: mailhog/mailhog  # Official MailHog image
+    
+    # Port configuration:
+    ports:
+      - "1025:1025"  # SMTP port for receiving emails
+      - "8025:8025"  # Web UI port for viewing emails
+    
+    networks:
+      - savannah-network  # Same network as other services
+    
+    restart: unless-stopped  # Consistent restart policy
+    
+    # Health check for MailHog service
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:8025"]  # Check web UI availability
+      interval: 5s     # Frequent checks during startup
+      timeout: 3s      # Shorter timeout for HTTP check
+      retries: 5       # Multiple retry attempts
+      start_period: 5s # Short initial wait period
+
+# Define persistent data volumes
 volumes:
-  postgres_data:
-    driver: local
+  postgres_data:        # Named volume for database storage
+    driver: local       # Use local volume driver
 
+# Define custom Docker networks
 networks:
-  savannah-network:
-    driver: bridge
+  savannah-network:     # Application-specific network
+    driver: bridge      # Use bridge networking (default)
